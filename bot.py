@@ -343,14 +343,24 @@ class AdminStates(StatesGroup):
 async def start_handler(message: Message):
 
     # Запоминаем Telegram ID продавца,
-    # когда продавец сам запустил бота
+    # но ошибка сохранения не должна ломать /start
     if is_admin(message.from_user):
-        await set_setting(
-            "seller_chat_id",
-            str(message.from_user.id)
-        )
+        try:
+            await set_setting(
+                "seller_chat_id",
+                str(message.from_user.id)
+            )
+        except Exception as e:
+            print(f"Ошибка сохранения seller_chat_id: {e}")
 
-    products = await get_products()
+    try:
+        products = await get_products()
+    except Exception as e:
+        print(f"Ошибка получения товаров: {e}")
+        await message.answer(
+            "⚠️ Произошла ошибка при загрузке каталога. Попробуйте позже."
+        )
+        return
 
     text = (
         "🛍 <b>Магазин</b>\n\n"
