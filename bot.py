@@ -572,12 +572,64 @@ async def buy_handler(callback: CallbackQuery):
 # АДМИН-ПАНЕЛЬ
 # =========================
 
-@dp.message(Command("admin"))
-async def admin_handler(message: Message):
+@dp.message(AdminStates.add_product)
+async def add_product_handler(message: Message, state: FSMContext):
 
-    if not is_admin(message.from_user):
-        await message.answer("⛔ Доступ запрещён.")
-        return
+    try:
+        if not message.text:
+            raise ValueError("Пустое сообщение")
+
+        parts = [x.strip() for x in message.text.split("|")]
+
+        if len(parts) != 3:
+            raise ValueError("Нужно ровно 3 части: Название | Цена | Количество")
+
+        name = parts[0]
+        price = float(parts[1].replace(",", "."))
+        quantity = int(parts[2])
+
+        if not name:
+            raise ValueError("Пустое название")
+
+        if price < 0:
+            raise ValueError("Цена не может быть отрицательной")
+
+        if quantity < 0:
+            raise ValueError("Количество не может быть отрицательным")
+
+        print(
+            f"Добавление товара: name={name}, price={price}, quantity={quantity}"
+        )
+
+        await add_product(
+            name,
+            price,
+            quantity
+        )
+
+        await message.answer(
+            "✅ Товар добавлен!"
+        )
+
+        await state.clear()
+
+    except ValueError as e:
+        print(f"Ошибка формата: {e}")
+
+        await message.answer(
+            f"❌ Ошибка формата:\n{e}\n\n"
+            "Используй:\n"
+            "<code>Название | Цена | Количество</code>",
+            parse_mode="HTML"
+        )
+
+    except Exception as e:
+        print(f"ОШИБКА SUPABASE ПРИ ДОБАВЛЕНИИ: {e}")
+
+        await message.answer(
+            "❌ Ошибка базы данных.\n\n"
+            "Я вывел подробную ошибку в Render Logs."
+        )
 
     await message.answer(
         "⚙️ <b>Панель администратора</b>\n\n"
